@@ -11,29 +11,29 @@ import android.os.Handler;
 import android.provider.MediaStore;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
 
+import java.util.ArrayList;
 import java.util.Timer;
 import java.util.TimerTask;
 
 public class MainActivity extends AppCompatActivity {
 
+
     private static final int PERMISSIONS_REQUEST_CODE = 100;
 
     Timer mTimer;
-    double mTimerSec = 0.0;
-    int btnFlg = 0;
 
     Handler mHandler = new Handler();
 
     Button mNextButton;
     Button mPrevButton;
     Button mStButton;
-    Uri imageUris[] = new Uri[3];
+    ArrayList imageUris = new ArrayList();
     int nowId = 0;
+    int maxId = 0;
 
 
     @Override
@@ -67,10 +67,10 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View view) {
                 ImageView imageView = (ImageView) findViewById(R.id.imageView);
                 nowId++;
-                if(nowId == 3) {
+                if(nowId == maxId) {
                     nowId = 0;
                 }
-                imageView.setImageURI(imageUris[nowId]);
+                imageView.setImageURI((Uri) imageUris.get(nowId));
             }
         });
 
@@ -81,9 +81,9 @@ public class MainActivity extends AppCompatActivity {
                 ImageView imageView = (ImageView) findViewById(R.id.imageView);
                 nowId--;
                 if(nowId < 0) {
-                    nowId = 2;
+                    nowId = maxId - 1;
                 }
-                imageView.setImageURI(imageUris[nowId]);
+                imageView.setImageURI((Uri) imageUris.get(nowId));
             }
         });
 
@@ -103,10 +103,10 @@ public class MainActivity extends AppCompatActivity {
                                 @Override
                                 public void run() {
                                     nowId++;
-                                    if (nowId == 3) {
+                                    if (nowId == maxId) {
                                         nowId = 0;
                                     }
-                                    imageView.setImageURI(imageUris[nowId]);
+                                    imageView.setImageURI((Uri) imageUris.get(nowId));
                                 }
                             });
 
@@ -152,18 +152,15 @@ public class MainActivity extends AppCompatActivity {
         );
 
         if (cursor.moveToFirst()) {
-            int i = 0;
             do {
                 int fieldIndex = cursor.getColumnIndex(MediaStore.Images.Media._ID);
                 Long id = cursor.getLong(fieldIndex);
                 Uri imageUri = ContentUris.withAppendedId(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, id);
 
-                imageUris[i] = imageUri;
+                imageUris.add(imageUri);
                 ImageView imageView = (ImageView) findViewById(R.id.imageView);
-                imageView.setImageURI(imageUris[0]);
-                i++;
-
-
+                imageView.setImageURI((Uri) imageUris.get(0));
+                maxId++;
 
             } while (cursor.moveToNext());
         }
