@@ -34,6 +34,7 @@ public class MainActivity extends AppCompatActivity {
     ArrayList imageUris = new ArrayList();
     int nowId = 0;
     int maxId = 0;
+    int pmsFlg = 0;
 
 
     @Override
@@ -41,20 +42,24 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // Android 6.0以降の場合
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            // パーミッションの許可状態を確認する
-            if (checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
-                // 許可されている
-                getContentsInfo();
+        if(pmsFlg == 0) {
+            // Android 6.0以降の場合
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                // パーミッションの許可状態を確認する
+                if (checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
+                    // 許可されている
+                    getContentsInfo();
+                    pmsFlg = 1;
+                } else {
+                    // 許可されていないので許可ダイアログを表示する
+                    requestPermissions(new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, PERMISSIONS_REQUEST_CODE);
+                }
+                // Android 5系以下の場合
             } else {
-                // 許可されていないので許可ダイアログを表示する
-                requestPermissions(new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, PERMISSIONS_REQUEST_CODE);
+                getContentsInfo();
             }
-            // Android 5系以下の場合
-        } else {
-            getContentsInfo();
         }
+
 
 
         mNextButton = (Button) findViewById(R.id.next_btn);
@@ -63,14 +68,22 @@ public class MainActivity extends AppCompatActivity {
 
 
         mNextButton.setOnClickListener(new View.OnClickListener() {
+
             @Override
             public void onClick(View view) {
-                ImageView imageView = (ImageView) findViewById(R.id.imageView);
-                nowId++;
-                if(nowId == maxId) {
-                    nowId = 0;
+
+                if(pmsFlg == 0) {
+                    if (checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
+                        pmsFlg = 1;
+                        getContentsInfo();
+                        nextShow();
+                    } else {
+                        requestPermissions(new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, PERMISSIONS_REQUEST_CODE);
+                    }
+                } else {
+                    nextShow();
+
                 }
-                imageView.setImageURI((Uri) imageUris.get(nowId));
             }
         });
 
@@ -78,49 +91,33 @@ public class MainActivity extends AppCompatActivity {
         mPrevButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                ImageView imageView = (ImageView) findViewById(R.id.imageView);
-                nowId--;
-                if(nowId < 0) {
-                    nowId = maxId - 1;
+                if(pmsFlg == 0) {
+                    if (checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
+                        pmsFlg = 1;
+                        getContentsInfo();
+                        prevShow();
+                    } else {
+                        requestPermissions(new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, PERMISSIONS_REQUEST_CODE);
+                    }
+                } else {
+                    prevShow();
                 }
-                imageView.setImageURI((Uri) imageUris.get(nowId));
             }
         });
 
         mStButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-
-                if (mTimer == null) {
-                    mTimer = new Timer();
-                    mTimer.schedule(new TimerTask() {
-                        ImageView imageView = (ImageView) findViewById(R.id.imageView);
-
-                        @Override
-                        public void run() {
-
-                            mHandler.post(new Runnable() {
-                                @Override
-                                public void run() {
-                                    nowId++;
-                                    if (nowId == maxId) {
-                                        nowId = 0;
-                                    }
-                                    imageView.setImageURI((Uri) imageUris.get(nowId));
-                                }
-                            });
-
-                        }
-                    }, 2000, 2000);
-                    mStButton.setText("停止");
-                    mNextButton.setEnabled(false);
-                    mPrevButton.setEnabled(false);
+                if(pmsFlg == 0) {
+                    if (checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
+                        pmsFlg = 1;
+                        getContentsInfo();
+                        autoPlay();
+                    } else {
+                        requestPermissions(new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, PERMISSIONS_REQUEST_CODE);
+                    }
                 } else {
-                    mTimer.cancel();
-                    mTimer = null;
-                    mStButton.setText("再生");
-                    mNextButton.setEnabled(true);
-                    mPrevButton.setEnabled(true);
+                    autoPlay();
                 }
             }
         });
@@ -162,6 +159,7 @@ public class MainActivity extends AppCompatActivity {
                 imageView.setImageURI((Uri) imageUris.get(0));
                 maxId++;
 
+
             } while (cursor.moveToNext());
         }
         cursor.close();
@@ -169,4 +167,55 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    private void prevShow() {
+        ImageView imageView = (ImageView) findViewById(R.id.imageView);
+        nowId--;
+        if (nowId < 0) {
+            nowId = maxId - 1;
+        }
+        imageView.setImageURI((Uri) imageUris.get(nowId));
+    }
+
+    private void nextShow() {
+        ImageView imageView = (ImageView) findViewById(R.id.imageView);
+        nowId++;
+        if(nowId == maxId) {
+            nowId = 0;
+        }
+        imageView.setImageURI((Uri) imageUris.get(nowId));
+    }
+
+    private void autoPlay() {
+        if (mTimer == null) {
+            mTimer = new Timer();
+            mTimer.schedule(new TimerTask() {
+                ImageView imageView = (ImageView) findViewById(R.id.imageView);
+
+                @Override
+                public void run() {
+
+                    mHandler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            nowId++;
+                            if (nowId == maxId) {
+                                nowId = 0;
+                            }
+                            imageView.setImageURI((Uri) imageUris.get(nowId));
+                        }
+                    });
+
+                }
+            }, 2000, 2000);
+            mStButton.setText("停止");
+            mNextButton.setEnabled(false);
+            mPrevButton.setEnabled(false);
+        } else {
+            mTimer.cancel();
+            mTimer = null;
+            mStButton.setText("再生");
+            mNextButton.setEnabled(true);
+            mPrevButton.setEnabled(true);
+        }
+    }
 }
